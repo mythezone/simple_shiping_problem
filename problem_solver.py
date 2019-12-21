@@ -1,5 +1,5 @@
 import numpy as np 
-import sys,os,time,argparse,json,random,copy,collections
+import sys,os,time,argparse,json,random,copy,collections,argparse
 from queue import Queue
 import sqlite3
 
@@ -99,7 +99,7 @@ class Mid:
         return [down,right]
 
 class Simulator:
-    def __init__(self,data_name,population=5,generation=1):
+    def __init__(self,data_name,population,generation):
         self.data=json.load(open(data_name))
         self.s=Mid(self.data)
         self.size=self.data['size']
@@ -126,22 +126,23 @@ class Simulator:
         population_lst = self.sorter(population_lst)
         for i in range(self.generation):
             child_lst = list()
-            # for single_item in population_lst:
-            #     if self.selector(single_item, population_lst):
-            #         result_item = self.mutation(single_item)
-            #         child_lst.append(result_item)
-            #         result_item=self.crossover(single_item,population_lst)
-            #         child_lst += result_item
-            # for _ in range(5):
-            #     child_lst.append(self.s.get_solution())
+            for single_item in population_lst:
+                if self.selector(single_item, population_lst):
+                    result_item = self.mutation(single_item)
+                    child_lst.append(result_item)
+                    result_item=self.crossover(single_item,population_lst)
+                    child_lst += result_item
+            for _ in range(5):
+                child_lst.append(self.s.get_solution())
             child_lst=self.s.generator(10)
             child_lst = [(item, self.fitness(item)) for item in child_lst]
             population_lst += child_lst
             population_lst = self.sorter(population_lst)
             population_lst = population_lst[: self.population]
-            print("In " + str(i) + " generation: ")
+            print("In " + str(i+1) + " generation: ")
             if self.acceptable(population_lst):
-                return population_lst[0], i
+                return population_lst[0], i+1
+        
         return population_lst[0], self.generation
     
     def init_view(self):
@@ -173,7 +174,8 @@ class Simulator:
         else:
             return False
 
-    def crossover_two(self,s1,s2):
+    def crossover_two(self,sx,s2):
+        s1=copy.deepcopy(sx)
         m1=self.init_delay_matrix()
         self.fitness(s1[0],matrix=m1)
         #print("m1\n",m1)
@@ -198,7 +200,8 @@ class Simulator:
             ls.append(self.crossover_two(s1,ss[i]))
         return ls
 
-    def mutation(self,s1):
+    def mutation(self,s2):
+        s1=copy.deepcopy(s2)
         m1=self.init_delay_matrix()
         self.fitness(s1[0],matrix=m1)
         change_index=[]
@@ -346,54 +349,54 @@ class Simulator:
         #print("Total steps:%s, Total delay:%s"%(steps,self.total_delay))
         return steps#,self.total_delay
 
-    def fitness2(self,solution):
-        goods=copy.deepcopy(self.goods_data)
-        self.goods_num=0
-        self.view=self.init_view()
-        s=copy.deepcopy(solution)
-        self.total_collision=0
-        for _ in goods:
-            self.goods_num+=len(_)
-        self.boxes=[]
-        while self.goods_num>0:
-            self.move_box()
-            self.add_box(s,goods)
-            time.sleep(0.2)
-            self.show_view(self.view,self.locked)
-        return self.total_collision
+    # def fitness2(self,solution):
+    #     goods=copy.deepcopy(self.goods_data)
+    #     self.goods_num=0
+    #     self.view=self.init_view()
+    #     s=copy.deepcopy(solution)
+    #     self.total_collision=0
+    #     for _ in goods:
+    #         self.goods_num+=len(_)
+    #     self.boxes=[]
+    #     while self.goods_num>0:
+    #         self.move_box()
+    #         self.add_box(s,goods)
+    #         time.sleep(0.2)
+    #         self.show_view(self.view,self.locked)
+    #     return self.total_collision
 
-    def set_view(self,pos,c):
-        self.view[pos[0]][pos[1]]=c
+    # def set_view(self,pos,c):
+    #     self.view[pos[0]][pos[1]]=c
 
-    def move_box(self):
-        tmp_remove=[]
-        tl=[i for i in range(len(self.boxes))]
-        random.shuffle(tl)
-        for i in tl:
-            b=self.boxes[i]
-            if len(b.path)==0:
-                tmp_remove.append(b)
-                self.set_view(b.pos,' ')
-                continue
-            b.move2(self.view)
-        for b in tmp_remove:
-            self.total_collision+=b.collision
-            #print("Total collision:",self.total_collision)
-            self.boxes.remove(b)
-            self.goods_num-=1
+    # def move_box(self):
+    #     tmp_remove=[]
+    #     tl=[i for i in range(len(self.boxes))]
+    #     random.shuffle(tl)
+    #     for i in tl:
+    #         b=self.boxes[i]
+    #         if len(b.path)==0:
+    #             tmp_remove.append(b)
+    #             self.set_view(b.pos,' ')
+    #             continue
+    #         b.move2(self.view)
+    #     for b in tmp_remove:
+    #         self.total_collision+=b.collision
+    #         #print("Total collision:",self.total_collision)
+    #         self.boxes.remove(b)
+    #         self.goods_num-=1
             
     
-    def add_box(self,s,goods):
-        for i in range(self.data['port']):
-            port_pos=self.port_position[i]
-            if self.view[port_pos[0]][port_pos[1]] !=' ':
-                continue
-            if len(s[i])==0:
-                continue
-            path=s[i].pop(0)
-            site=goods[i].pop(0)
-            b=box(port_pos,i,site,path,self.view,0)
-            self.boxes.append(b)
+    # def add_box(self,s,goods):
+    #     for i in range(self.data['port']):
+    #         port_pos=self.port_position[i]
+    #         if self.view[port_pos[0]][port_pos[1]] !=' ':
+    #             continue
+    #         if len(s[i])==0:
+    #             continue
+    #         path=s[i].pop(0)
+    #         site=goods[i].pop(0)
+    #         b=box(port_pos,i,site,path,self.view,0)
+    #         self.boxes.append(b)
         
         
 
@@ -549,13 +552,24 @@ class box:
         self.pos=tmp_p  
 
 if __name__ == "__main__":
-    p=Simulator('data.json')
+    parse=argparse.ArgumentParser()
+    parse.add_argument('--population',type=int,default=10)
+    parse.add_argument('--generation',type=int,default=50)
+    # parse.add_argument('--goods',type=int,default=50)
+    # parse.add_argument('--dataname',type=str,default='data.json')
+    # parse.add_argument('--size',type=int,default=17)
+
+    args=parse.parse_args()
+
+    p=Simulator('data.json',population=args.population,generation=args.generation)
     # s1=p.s.get_solution()
     # s2=p.s.get_solution()
     #x1=p.fitness(solution)
     #print(x)
     sol,res=p.evolution()
-    p.fitness(sol[0],record='record.db')
+    #print(sol)
+    x=p.fitness(sol[0],record='record.db')
+    print("The best result found is :",x)
     #x=solution
     #s2=p.s.get_solution()
     #json.dump(s2,open('solution.json','w'))
