@@ -139,7 +139,7 @@ class Simulator:
             population_lst += child_lst
             population_lst = self.sorter(population_lst)
             population_lst = population_lst[: self.population]
-            print("In " + str(i+1) + " generation: ")
+            print("In " + str(i+1) + " generation: ",end=' ')
             if self.acceptable(population_lst):
                 return population_lst[0], i+1
         
@@ -429,11 +429,22 @@ class box:
         # if lock[pos[0]][pos[1]]!=[]:
         lock[pos[0]][pos[1]].pop(0)
 
-    def step(self,d,view,lock):
+    def step(self,d,view,lock,last=False):
         if d=='S':
             #self.action='S'
             return True
         tmp_p=self.tmp_position(d)
+
+        # if last==True and view[tmp_p[0]][tmp_p[1]]==' ':
+        #     #tmp_p=self.tmp_position(d)
+        #     self.set_view(self.pos,' ',view)
+        #     self.set_view(tmp_p,self.dist,view)
+        #     self.pos=tmp_p
+        #     return True
+        # if last==True:
+        #     return True
+        
+        #tmp_p=self.tmp_position(d)
         #if self.check_view(tmp_p,view,lock):
         if view[tmp_p[0]][tmp_p[1]]!=' ':
             return False
@@ -445,6 +456,7 @@ class box:
         #     self.pos=tmp_p
         #     return True
 
+
         if lock[tmp_p[0]][tmp_p[1]]==[]:
             self.set_view(self.pos,' ',view)
             self.set_view(tmp_p,self.dist,view)
@@ -452,6 +464,8 @@ class box:
             if mono!=False:
                 self.lock_path(self.pos,self.path+self.not_success,lock)
             return True
+
+        
 
         if lock[tmp_p[0]][tmp_p[1]][0]==self.id:
             self.release_lock(tmp_p,lock)
@@ -464,16 +478,31 @@ class box:
     def move(self,view,lock):
         if len(self.path)==0:
             return
+        # elif len(self.path)==1:
+        #     self.final_pos=self.tmp_position(self.path[0])
+        #     if view[self.final_pos[0]][self.final_pos[1]]==' ':
+        #         view[self.pos[0]][self.pos[1]]=' '
+        #         view[self.final_pos[0]][self.final_pos[1]]=self.dist
+        #         self.pos=self.final_pos
+        #         return
+
         block=set()
         self.not_success=[]
         try_num=len(self.path)
         step_success=False
+        
         while try_num!=0:
             try_num-=1
             d=self.path.pop(0)
+            # if len(self.path)+len(self.not_success)==0:
+            #     step_success=True
+            #     self.action=d
+            #     self.step(d,view,lock,True)
+            #     return
             if d in block:
                 self.not_success.append(d)
             else:
+                
                 f=self.step(d,view,lock)
                 if f==True:
                     step_success=True
@@ -489,11 +518,6 @@ class box:
             self.step("S",view,lock)
             self.delay+=1
             self.action='S'
-
-    def move3(self,view,locked):
-        if self.check_mono(self.path):
-            for i in self.path:
-                pass
 
     def lock_pos(self,pos,locked):
         locked[pos[0]][pos[1]].append(self.id)
@@ -554,7 +578,7 @@ class box:
 if __name__ == "__main__":
     parse=argparse.ArgumentParser()
     parse.add_argument('--population',type=int,default=10)
-    parse.add_argument('--generation',type=int,default=50)
+    parse.add_argument('--generation',type=int,default=150)
     # parse.add_argument('--goods',type=int,default=50)
     # parse.add_argument('--dataname',type=str,default='data.json')
     # parse.add_argument('--size',type=int,default=17)
